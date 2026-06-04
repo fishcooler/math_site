@@ -1,0 +1,1431 @@
+/* ==================== 全局样式 ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #6C63FF;
+    --primary-light: #8B83FF;
+    --secondary: #FF6B6B;
+    --accent: #4ECDC4;
+    --success: #51CF66;
+    --warning: #FFD43B;
+    --info: #339AF0;
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --card-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    --hover-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background: linear-gradient(135deg, #E8F4FD 0%, #F0E6FF 50%, #FFE6F0 100%);
+    min-height: 100vh;
+    color: #333;
+    overflow-x: hidden;
+}
+
+/* ==================== 登录页面 ==================== */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    position: relative;
+}
+
+/* 背景装饰 */
+.container::before,
+.container::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    opacity: 0.1;
+    z-index: 0;
+}
+
+.container::before {
+    width: 300px;
+    height: 300px;
+    background: var(--primary);
+    top: -100px;
+    left: -100px;
+    animation: float 6s ease-in-out infinite;
+}
+
+.container::after {
+    width: 200px;
+    height: 200px;
+    background: var(--secondary);
+    bottom: -50px;
+    right: -50px;
+    animation: float 8s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+.login-box {
+    background: white;
+    border-radius: 30px;
+    padding: 50px 40px;
+    box-shadow: var(--card-shadow);
+    max-width: 450px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-box h1 {
+    font-size: 36px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.login-box .subtitle {
+    color: #888;
+    font-size: 16px;
+    margin-bottom: 35px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 10px;
+    color: #555;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 15px 20px;
+    border: 3px solid #E8E8E8;
+    border-radius: 15px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: #FAFAFA;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.1);
+}
+
+.form-group input::placeholder {
+    color: #BBB;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    border: none;
+    padding: 16px 40px;
+    border-radius: 25px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-shadow: 0 8px 20px rgba(108, 99, 255, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(108, 99, 255, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 35px;
+}
+
+.feature-item {
+    background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+    padding: 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    color: #666;
+    border: 2px solid #F0F0F0;
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+    box-shadow: 0 5px 15px rgba(108, 99, 255, 0.1);
+}
+
+/* ==================== 出题模式选择 ==================== */
+.mode-selector {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+.mode-selector h3 {
+    color: #333;
+    margin-bottom: 18px;
+    font-size: 18px;
+}
+
+.mode-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.mode-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border-radius: 15px;
+    border: 3px solid #E8E8E8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+}
+
+.mode-option:hover {
+    border-color: #6C63FF;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(108, 99, 255, 0.15);
+}
+
+.mode-option.active {
+    border-color: #6C63FF;
+    background: linear-gradient(135deg, #F0F0FF 0%, #FFFFFF 100%);
+    box-shadow: 0 5px 15px rgba(108, 99, 255, 0.2);
+}
+
+.mode-option input[type="radio"] {
+    display: none;
+}
+
+.mode-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.mode-name {
+    font-weight: 700;
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.mode-desc {
+    font-size: 12px;
+    color: #888;
+}
+
+/* AI加载动画 */
+.ai-loading {
+    animation: aiPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes aiPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* AI标识 */
+.ai-badge {
+    background: linear-gradient(135deg, #6C63FF 0%, #4ECDC4 100%);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 20px;
+    animation: slideDown 0.3s ease;
+}
+
+/* 错误消息 */
+.error-message {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.error-icon {
+    font-size: 50px;
+    display: block;
+    margin-bottom: 15px;
+}
+
+.error-message p {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 16px;
+}
+
+/* ==================== 练习页面 ==================== */
+.practice-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Logo样式 */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.logo-icon {
+    font-size: 28px;
+    animation: logoPulse 2s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.logo-text {
+    font-size: 16px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.practice-header {
+    background: white;
+    border-radius: 20px;
+    padding: 25px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    box-shadow: var(--card-shadow);
+    animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.header-left h1 {
+    font-size: 28px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.user-name {
+    color: #888;
+    font-size: 14px;
+    margin-top: 5px;
+    display: block;
+}
+
+.header-right {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+    color: #555;
+    border: 2px solid #E8E8E8;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    border-color: transparent;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 99, 255, 0.2);
+}
+
+.btn-logout {
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+}
+
+/* ==================== 进度条 ==================== */
+.progress-bar {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 25px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 50%, var(--success) 100%);
+    position: absolute;
+    left: 0;
+    top: 0;
+    transition: width 0.5s ease;
+    opacity: 0.15;
+}
+
+.progress-text {
+    position: relative;
+    z-index: 1;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 18px;
+}
+
+/* ==================== 题目区域 ==================== */
+.questions-container {
+    background: white;
+    border-radius: 25px;
+    padding: 35px;
+    min-height: 400px;
+    box-shadow: var(--card-shadow);
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.loading {
+    text-align: center;
+    padding: 80px 50px;
+    color: #888;
+    font-size: 20px;
+}
+
+.loading::before {
+    content: '🎲';
+    display: block;
+    font-size: 60px;
+    margin-bottom: 20px;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+.question-group {
+    margin-bottom: 35px;
+}
+
+.group-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #F0F0F0;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.question-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+}
+
+.question-card {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FF 100%);
+    border-radius: 18px;
+    padding: 20px;
+    border: 3px solid #F0F0F0;
+    transition: all 0.3s ease;
+    animation: cardIn 0.4s ease-out;
+}
+
+@keyframes cardIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.question-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-5px);
+    box-shadow: var(--hover-shadow);
+}
+
+.question-card.answered-correct {
+    border-color: var(--success);
+    background: linear-gradient(135deg, #F1FFE6 0%, #FFFFFF 100%);
+    animation: correctPulse 0.5s ease;
+}
+
+@keyframes correctPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.question-card.answered-wrong {
+    border-color: var(--secondary);
+    background: linear-gradient(135deg, #FFF5F5 0%, #FFFFFF 100%);
+}
+
+.q-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.q-content {
+    margin-bottom: 15px;
+}
+
+.q-content p {
+    margin: 8px 0;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.q-input input,
+.q-input select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 3px solid #E8E8E8;
+    border-radius: 12px;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    background: #FAFAFA;
+}
+
+.q-input input:focus,
+.q-input select:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.1);
+}
+
+.q-input select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
+}
+
+.q-result {
+    margin-top: 12px;
+    font-size: 15px;
+    min-height: 24px;
+}
+
+.correct {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.wrong {
+    color: var(--secondary);
+    font-weight: 700;
+}
+
+.correct-answer {
+    display: block;
+    color: var(--success);
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+/* ==================== 操作栏 ==================== */
+.action-bar {
+    text-align: center;
+    margin-top: 35px;
+    padding: 25px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.btn-large {
+    padding: 18px 60px;
+    font-size: 20px;
+    border-radius: 30px;
+}
+
+/* ==================== 结果弹窗 ==================== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: white;
+    border-radius: 30px;
+    padding: 45px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    animation: modalSlideIn 0.4s ease-out;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.score-display {
+    margin: 30px 0;
+}
+
+.score-circle {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 25px;
+    color: white;
+    box-shadow: 0 15px 40px rgba(108, 99, 255, 0.3);
+    animation: scoreReveal 0.6s ease-out;
+}
+
+@keyframes scoreReveal {
+    from {
+        transform: scale(0) rotate(-180deg);
+    }
+    to {
+        transform: scale(1) rotate(0);
+    }
+}
+
+.score-number {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.score-label {
+    font-size: 20px;
+    opacity: 0.9;
+}
+
+.encourage {
+    font-size: 22px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 20px 0;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.modal-actions .btn-secondary {
+    padding: 12px 30px;
+}
+
+.modal-actions .btn-primary {
+    width: auto;
+    padding: 12px 35px;
+}
+
+/* ==================== 积分显示 ==================== */
+.points-earned {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 25px 0 15px;
+    animation: pointsBounce 0.6s ease;
+}
+
+.points-icon {
+    font-size: 36px;
+    margin-right: 12px;
+}
+
+.points-text {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--warning);
+    text-shadow: 0 3px 6px rgba(255, 212, 59, 0.3);
+}
+
+.point-reasons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.reason-item {
+    font-size: 14px;
+    color: var(--success);
+    background: #E8F8E8;
+    padding: 6px 16px;
+    border-radius: 20px;
+    display: inline-block;
+    font-weight: 500;
+}
+
+@keyframes pointsBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+/* ==================== 新成就通知 ==================== */
+.new-achievements {
+    margin-top: 25px;
+    padding: 20px;
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    border-radius: 20px;
+    text-align: left;
+    animation: achievementGlow 1s ease-in-out;
+}
+
+@keyframes achievementGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.5); }
+}
+
+.new-achievements h3 {
+    color: #333;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 20px;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 15px;
+    padding: 15px 18px;
+    margin-bottom: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.achievement-item .achievement-icon {
+    font-size: 32px;
+    margin-right: 15px;
+}
+
+.achievement-item .achievement-info {
+    flex: 1;
+}
+
+.achievement-item .achievement-name {
+    font-weight: 700;
+    color: #333;
+    display: block;
+    font-size: 16px;
+}
+
+.achievement-item .achievement-desc {
+    font-size: 13px;
+    color: #666;
+    margin-top: 3px;
+}
+
+.achievement-item .achievement-points {
+    color: #FF6B00;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+/* ==================== 成就页面 ==================== */
+.achievement-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(108, 99, 255, 0.2);
+}
+
+.stat-number {
+    display: block;
+    font-size: 42px;
+    font-weight: 800;
+}
+
+.stat-label {
+    font-size: 15px;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+.achievement-progress {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 35px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.achievement-progress .progress-bar {
+    background: #E8E8E8;
+    border-radius: 12px;
+    height: 24px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    padding: 0;
+}
+
+.achievement-progress .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success) 0%, #8BC34A 100%);
+    transition: width 0.8s ease;
+    position: static;
+    opacity: 1;
+}
+
+.achievement-progress .progress-text {
+    text-align: center;
+    color: #666;
+    font-size: 15px;
+}
+
+.section {
+    margin-bottom: 35px;
+}
+
+.section-title {
+    font-size: 24px;
+    margin-bottom: 25px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #F0F0F0;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 18px;
+}
+
+.achievement-card {
+    background: white;
+    border-radius: 20px;
+    padding: 22px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    border: 3px solid transparent;
+}
+
+.achievement-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--hover-shadow);
+}
+
+.achievement-card.locked {
+    opacity: 0.5;
+    background: #F8F8F8;
+}
+
+.achievement-card.unlocked {
+    border-color: var(--success);
+    background: linear-gradient(135deg, #F1FFE6 0%, #FFFFFF 100%);
+}
+
+.achievement-icon {
+    font-size: 44px;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #F0F0FF 0%, #FFFFFF 100%);
+    border-radius: 50%;
+    box-shadow: 0 5px 15px rgba(108, 99, 255, 0.1);
+}
+
+.achievement-info h3 {
+    color: #333;
+    margin-bottom: 6px;
+    font-size: 18px;
+}
+
+.achievement-info p {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.achievement-time {
+    font-size: 12px;
+    color: #999;
+}
+
+.achievement-points {
+    font-size: 13px;
+    color: #FF6B00;
+    background: #FFF3E0;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.achievement-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 20px;
+}
+
+/* ==================== 排行榜样式 ==================== */
+.my-rank-card {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    border-radius: 25px;
+    padding: 30px;
+    margin-bottom: 35px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 15px 40px rgba(108, 99, 255, 0.3);
+    animation: slideUp 0.5s ease-out;
+}
+
+.rank-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.rank-label {
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+.rank-number {
+    font-size: 42px;
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+.rank-stats {
+    display: flex;
+    gap: 35px;
+}
+
+.rank-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.rank-stat .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.rank-stat .stat-label {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.leaderboard-section {
+    background: white;
+    border-radius: 25px;
+    padding: 35px;
+    margin-bottom: 35px;
+    box-shadow: var(--card-shadow);
+}
+
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.leaderboard-item {
+    display: flex;
+    align-items: center;
+    padding: 18px 22px;
+    background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.leaderboard-item:hover {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F0F0FF 100%);
+    border-color: var(--primary);
+    transform: translateX(8px);
+}
+
+.leaderboard-item.top3 {
+    background: linear-gradient(135deg, #FFF9C4 0%, #FFE0B2 100%);
+    border-color: #FFD700;
+}
+
+.rank-badge {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    margin-right: 18px;
+}
+
+.leaderboard-item .user-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.leaderboard-item .user-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+}
+
+.leaderboard-item .practice-count {
+    font-size: 13px;
+    color: #888;
+    margin-top: 3px;
+}
+
+.user-points {
+    text-align: right;
+}
+
+.user-points .points-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.user-points .points-label {
+    font-size: 13px;
+    color: #888;
+}
+
+/* ==================== 积分规则 ==================== */
+.rules-section {
+    background: white;
+    border-radius: 25px;
+    padding: 35px;
+    box-shadow: var(--card-shadow);
+}
+
+.rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+}
+
+.rule-item {
+    display: flex;
+    align-items: center;
+    padding: 18px;
+    background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+    border-radius: 15px;
+    border: 2px solid #F0F0F0;
+    transition: all 0.3s ease;
+}
+
+.rule-item:hover {
+    border-color: var(--primary);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(108, 99, 255, 0.1);
+}
+
+.rule-icon {
+    font-size: 28px;
+    margin-right: 15px;
+}
+
+.rule-desc {
+    flex: 1;
+    color: #555;
+    font-weight: 500;
+}
+
+.rule-points {
+    font-weight: 800;
+    color: var(--success);
+    font-size: 20px;
+}
+
+/* ==================== 错题本 ==================== */
+.mistakes-container {
+    background: white;
+    border-radius: 25px;
+    padding: 35px;
+    box-shadow: var(--card-shadow);
+}
+
+.mistakes-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 35px;
+}
+
+.mistakes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.mistake-card {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FF 100%);
+    border-radius: 18px;
+    padding: 22px;
+    border-left: 5px solid var(--secondary);
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+}
+
+.mistake-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.mistake-card.reviewed {
+    border-left-color: var(--success);
+    opacity: 0.8;
+}
+
+.mistake-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.mistake-date {
+    color: #888;
+    font-size: 14px;
+}
+
+.review-badge {
+    padding: 5px 14px;
+    border-radius: 15px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.review-badge.pending {
+    background: #FFE8E8;
+    color: var(--secondary);
+}
+
+.review-badge.done {
+    background: #E8F8E8;
+    color: var(--success);
+}
+
+.question-text {
+    font-weight: 600;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.answer-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.wrong-answer .value,
+.correct-answer .value {
+    font-weight: 700;
+    font-size: 18px;
+    display: block;
+    margin-top: 5px;
+}
+
+.wrong-answer .value {
+    color: var(--secondary);
+}
+
+.correct-answer .value {
+    color: var(--success);
+}
+
+.label {
+    color: #888;
+    font-size: 14px;
+}
+
+.explanation {
+    background: linear-gradient(135deg, #E3F2FD 0%, #FFFFFF 100%);
+    padding: 18px;
+    border-radius: 12px;
+    margin-bottom: 18px;
+    border: 2px solid #BBDEFB;
+}
+
+.explanation .label {
+    color: var(--info);
+    font-weight: 600;
+}
+
+.explanation p {
+    margin-top: 8px;
+    color: #555;
+}
+
+.mistake-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-small {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 18px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-small:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success) 0%, #69DB7C 100%);
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--secondary) 0%, #FF8E8E 100%);
+    color: white;
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.empty-icon {
+    font-size: 90px;
+    margin-bottom: 25px;
+    animation: emptyBounce 2s infinite;
+}
+
+@keyframes emptyBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.empty-state h3 {
+    font-size: 28px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.empty-state p {
+    color: #888;
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+/* ==================== 响应式设计 ==================== */
+@media (max-width: 768px) {
+    .practice-header {
+        flex-direction: column;
+        gap: 18px;
+        text-align: center;
+    }
+    
+    .header-right {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .question-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .achievements-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .mistakes-stats,
+    .achievement-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .answer-comparison {
+        grid-template-columns: 1fr;
+    }
+    
+    .my-rank-card {
+        flex-direction: column;
+        gap: 25px;
+        text-align: center;
+    }
+    
+    .rank-stats {
+        justify-content: center;
+    }
+    
+    .modal-content {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .score-circle {
+        width: 130px;
+        height: 130px;
+    }
+    
+    .score-number {
+        font-size: 44px;
+    }
+    
+    .rules-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-box {
+        padding: 35px 25px;
+    }
+    
+    .login-box h1 {
+        font-size: 28px;
+    }
+    
+    .features {
+        grid-template-columns: 1fr;
+    }
+    
+    .btn-primary {
+        padding: 14px 30px;
+    }
+    
+    .btn-large {
+        padding: 16px 40px;
+        font-size: 18px;
+    }
+}

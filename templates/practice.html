@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 数苗乐园 - {{ user_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">🌱</span>
+                    <span class="logo-text">数苗乐园</span>
+                </div>
+                <h1>🎯 思维训练</h1>
+                <span class="user-name">{{ user_name }} · ⭐ {{ user_points }} 积分</span>
+            </div>
+            <div class="header-right">
+                <button onclick="regenerateQuestions()" class="btn-secondary">🔄 换一批</button>
+                <a href="/parent" class="btn-secondary">👨‍👩‍👧 家长看板</a>
+                <a href="/messages" class="btn-secondary">💬 留言板</a>
+                <a href="/achievements" class="btn-secondary">🏆 成就墙</a>
+                <a href="/leaderboard" class="btn-secondary">📊 排行榜</a>
+                <a href="/mistakes" class="btn-secondary">📖 错题本</a>
+                <a href="/logout" class="btn-logout">退出</a>
+            </div>
+        </header>
+        
+        <!-- 出题模式选择 -->
+        <div class="mode-selector">
+            <h3>🎯 出题模式</h3>
+            <div class="mode-options">
+                <label class="mode-option active" data-mode="offline">
+                    <input type="radio" name="mode" value="offline" checked>
+                    <span class="mode-icon">📱</span>
+                    <span class="mode-name">离线模式</span>
+                    <span class="mode-desc">无需网络，随时可用</span>
+                </label>
+                <label class="mode-option" data-mode="ai">
+                    <input type="radio" name="mode" value="ai">
+                    <span class="mode-icon">🤖</span>
+                    <span class="mode-name">AI智能</span>
+                    <span class="mode-desc">个性化出题，针对薄弱点</span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+            <span class="progress-text" id="progressText">0/30</span>
+        </div>
+        
+        <div class="questions-container" id="questionsContainer">
+            <div class="loading">正在生成题目...</div>
+        </div>
+        
+        <div class="action-bar" id="actionBar">
+            <button onclick="submitAll()" class="btn-primary btn-large">提交答案 ✅</button>
+        </div>
+        
+        <!-- 结果弹窗 -->
+        <div class="modal" id="resultModal">
+            <div class="modal-content">
+                <h2>🎉 练习完成！</h2>
+                <div class="score-display" id="scoreDisplay"></div>
+                <div class="result-summary" id="resultSummary"></div>
+                <div class="modal-actions">
+                    <button onclick="closeModal()" class="btn-secondary">查看详情</button>
+                    <button onclick="regenerateQuestions()" class="btn-primary">再来一套 🔄</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let questions = [];
+        let answers = {};
+        let currentMode = 'offline';
+        
+        // 页面加载时生成题目
+        window.onload = function() {
+            // 模式选择事件
+            document.querySelectorAll('input[name="mode"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    currentMode = this.value;
+                    updateModeUI();
+                });
+            });
+            
+            loadQuestions();
+        };
+        
+        function updateModeUI() {
+            document.querySelectorAll('.mode-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.mode === currentMode) {
+                    option.classList.add('active');
+                }
+            });
+        }
+        
+        async function loadQuestions() {
+            const container = document.getElementById('questionsContainer');
+            
+            if (currentMode === 'ai') {
+                container.innerHTML = '<div class="loading ai-loading">🤖 AI正在为你出题...</div>';
+            } else {
+                container.innerHTML = '<div class="loading">正在生成题目...</div>';
+            }
+            
+            try {
+                const response = await fetch(`/api/generate_questions?mode=${currentMode}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    container.innerHTML = `<div class="error-message">
+                        <span class="error-icon">⚠️</span>
+                        <p>${data.error}</p>
+                        <button onclick="currentMode='offline'; updateModeUI(); loadQuestions();" class="btn-secondary">切换到离线模式</button>
+                    </div>`;
+                    return;
+                }
+                
+                if (data.questions) {
+                    questions = data.questions;
+                    answers = {};
+                    
+                    // 更新模式显示
+                    if (data.mode === 'ai') {
+                        container.innerHTML = '<div class="ai-badge">🤖 AI智能出题</div>';
+                    }
+                    
+                    renderQuestions();
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="error-message">
+                    <span class="error-icon">❌</span>
+                    <p>出题失败: ${error.message}</p>
+                    <button onclick="currentMode='offline'; updateModeUI(); loadQuestions();" class="btn-secondary">切换到离线模式</button>
+                </div>`;
+            }
+        }
+        
+        function renderQuestions() {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+            
+            // 分组显示题目
+            const groups = [
+                { title: '📝 一、计算题（20题）', start: 1, end: 20 },
+                { title: '🔍 二、找规律填数（3题）', start: 21, end: 23 },
+                { title: '⚖️ 三、比较大小（2题）', start: 24, end: 25 },
+                { title: '🔢 四、数一数（2题）', start: 26, end: 27 },
+                { title: '💡 五、解决问题（3题）', start: 28, end: 30 }
+            ];
+            
+            groups.forEach(group => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'question-group';
+                
+                const title = document.createElement('h3');
+                title.className = 'group-title';
+                title.textContent = group.title;
+                groupDiv.appendChild(title);
+                
+                const grid = document.createElement('div');
+                grid.className = 'question-grid';
+                
+                for (let i = group.start - 1; i < group.end && i < questions.length; i++) {
+                    const q = questions[i];
+                    const card = createQuestionCard(q);
+                    grid.appendChild(card);
+                }
+                
+                groupDiv.appendChild(grid);
+                container.appendChild(groupDiv);
+            });
+            
+            updateProgress();
+        }
+        
+        function createQuestionCard(q) {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.dataset.num = q.num;
+            
+            const num = document.createElement('span');
+            num.className = 'q-num';
+            num.textContent = q.num + '.';
+            
+            const content = document.createElement('div');
+            content.className = 'q-content';
+            
+            // 处理多行内容
+            const lines = q.content.split('\n');
+            lines.forEach((line, idx) => {
+                const p = document.createElement('p');
+                p.textContent = line;
+                content.appendChild(p);
+            });
+            
+            const inputDiv = document.createElement('div');
+            inputDiv.className = 'q-input';
+            
+            if (q.type === 'compare') {
+                // 比较大小用选择
+                const select = document.createElement('select');
+                select.innerHTML = `
+                    <option value="">选择</option>
+                    <option value=">">&gt;</option>
+                    <option value="<">&lt;</option>
+                    <option value="=">=</option>
+                `;
+                select.onchange = () => saveAnswer(q.num, select.value);
+                inputDiv.appendChild(select);
+            } else {
+                // 其他用输入框
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = '答案';
+                input.oninput = () => saveAnswer(q.num, input.value);
+                inputDiv.appendChild(input);
+            }
+            
+            // 结果显示区域
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'q-result';
+            resultDiv.id = `result-${q.num}`;
+            
+            card.appendChild(num);
+            card.appendChild(content);
+            card.appendChild(inputDiv);
+            card.appendChild(resultDiv);
+            
+            return card;
+        }
+        
+        function saveAnswer(num, value) {
+            answers[num] = value;
+            updateProgress();
+        }
+        
+        function updateProgress() {
+            const answered = Object.keys(answers).filter(k => answers[k]).length;
+            const total = questions.length;
+            const percent = (answered / total) * 100;
+            
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = `${answered}/${total}`;
+        }
+        
+        async function submitAll() {
+            const answered = Object.keys(answers).filter(k => answers[k]).length;
+            if (answered < questions.length) {
+                if (!confirm(`还有 ${questions.length - answered} 道题未作答，确定要提交吗？`)) {
+                    return;
+                }
+            }
+            
+            const submitData = questions.map(q => ({
+                question_num: q.num,
+                answer: answers[q.num] || '',
+                correct_answer: q.answer,
+                explanation: q.explanation
+            }));
+            
+            const response = await fetch('/api/submit_all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers: submitData })
+            });
+            
+            const data = await response.json();
+            showResults(data);
+        }
+        
+        function showResults(data) {
+            // 显示每题结果
+            data.results.forEach(r => {
+                const resultDiv = document.getElementById(`result-${r.question_num}`);
+                if (r.correct) {
+                    resultDiv.innerHTML = '<span class="correct">✅ 正确</span>';
+                    resultDiv.parentElement.classList.add('answered-correct');
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="wrong">❌ 错误</span>
+                        <span class="correct-answer">正确答案：${r.correct_answer}</span>
+                    `;
+                    resultDiv.parentElement.classList.add('answered-wrong');
+                }
+            });
+            
+            // 显示总分
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            let pointsHtml = `
+                <div class="score-circle">
+                    <span class="score-number">${data.score}</span>
+                    <span class="score-label">分</span>
+                </div>
+                <p>答对 ${data.correct_count} / ${data.total} 题</p>
+            `;
+            
+            // 显示积分信息
+            if (data.points_earned > 0) {
+                pointsHtml += `
+                    <div class="points-earned">
+                        <span class="points-icon">⭐</span>
+                        <span class="points-text">+${data.points_earned} 积分</span>
+                    </div>
+                `;
+                if (data.point_reasons && data.point_reasons.length > 0) {
+                    pointsHtml += '<div class="point-reasons">';
+                    data.point_reasons.forEach(reason => {
+                        pointsHtml += `<span class="reason-item">${reason}</span>`;
+                    });
+                    pointsHtml += '</div>';
+                }
+            }
+            
+            scoreDisplay.innerHTML = pointsHtml;
+            
+            // 显示鼓励语
+            const summary = document.getElementById('resultSummary');
+            if (data.score >= 90) {
+                summary.innerHTML = '<p class="encourage">🌟 太棒了！继续保持！</p>';
+            } else if (data.score >= 70) {
+                summary.innerHTML = '<p class="encourage">👍 不错哦，再努力一点！</p>';
+            } else {
+                summary.innerHTML = '<p class="encourage">💪 加油！多练习就会进步的！</p>';
+            }
+            
+            // 显示新成就
+            if (data.new_achievements && data.new_achievements.length > 0) {
+                let achHtml = '<div class="new-achievements"><h3>🎉 解锁新成就！</h3>';
+                data.new_achievements.forEach(ach => {
+                    achHtml += `
+                        <div class="achievement-item">
+                            <span class="achievement-icon">${ach.icon}</span>
+                            <div class="achievement-info">
+                                <span class="achievement-name">${ach.name}</span>
+                                <span class="achievement-desc">${ach.description}</span>
+                            </div>
+                            ${ach.points > 0 ? `<span class="achievement-points">+${ach.points}</span>` : ''}
+                        </div>
+                    `;
+                });
+                achHtml += '</div>';
+                summary.innerHTML += achHtml;
+            }
+            
+            // 更新总积分显示
+            if (data.total_points !== undefined) {
+                document.querySelector('.user-name').innerHTML = `你好，{{ user_name }}！ ⭐ ${data.total_points} 积分`;
+            }
+            
+            document.getElementById('resultModal').style.display = 'flex';
+            
+            // 隐藏提交按钮
+            document.getElementById('actionBar').style.display = 'none';
+        }
+        
+        function closeModal() {
+            document.getElementById('resultModal').style.display = 'none';
+        }
+        
+        function regenerateQuestions() {
+            answers = {};
+            document.getElementById('actionBar').style.display = 'block';
+            closeModal();
+            loadQuestions();
+        }
+    </script>
+</body>
+</html>

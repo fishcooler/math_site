@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👨‍👩‍👧 家长看板 - 数苗乐园</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">🌱</span>
+                    <span class="logo-text">数苗乐园</span>
+                </div>
+                <h1>👨‍👩‍👧 家长看板</h1>
+                <span class="user-name">{{ user_name }} · ⭐ {{ user_points }} 积分</span>
+            </div>
+            <div class="header-right">
+                <a href="/practice" class="btn-secondary">📝 返回练习</a>
+                <a href="/achievements" class="btn-secondary">🏆 成就墙</a>
+                <a href="/leaderboard" class="btn-secondary">📊 排行榜</a>
+                <a href="/logout" class="btn-logout">退出</a>
+            </div>
+        </header>
+        
+        <!-- 统计卡片 -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card today">
+                <div class="stat-icon">📅</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="todayPractices">0</span>
+                    <span class="stat-label">今日练习</span>
+                </div>
+            </div>
+            <div class="stat-card week">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="weekPractices">0</span>
+                    <span class="stat-label">本周练习</span>
+                </div>
+            </div>
+            <div class="stat-card month">
+                <div class="stat-icon">📈</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="monthPractices">0</span>
+                    <span class="stat-label">本月练习</span>
+                </div>
+            </div>
+            <div class="stat-card score">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="avgScore">0</span>
+                    <span class="stat-label">平均分</span>
+                </div>
+            </div>
+            <div class="stat-card streak">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="streak">0</span>
+                    <span class="stat-label">连续天数</span>
+                </div>
+            </div>
+            <div class="stat-card mistakes">
+                <div class="stat-icon">📖</div>
+                <div class="stat-info">
+                    <span class="stat-number" id="mistakeCount">0</span>
+                    <span class="stat-label">待复习错题</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 学习趋势图 -->
+        <div class="chart-section">
+            <h2 class="section-title">📈 学习趋势（最近30天）</h2>
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- 知识点掌握 -->
+        <div class="mastery-section">
+            <h2 class="section-title">🎯 知识点掌握情况</h2>
+            <div class="mastery-grid" id="masteryGrid">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 薄弱知识点 -->
+        <div class="weak-section">
+            <h2 class="section-title">⚠️ 薄弱知识点</h2>
+            <div class="weak-list" id="weakList">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 学习建议 -->
+        <div class="suggestions-section">
+            <h2 class="section-title">💡 智能学习建议</h2>
+            <div class="suggestions-list" id="suggestionsList">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 加载学习报告
+        async function loadLearningReport() {
+            const response = await fetch('/api/learning_report');
+            const data = await response.json();
+            
+            document.getElementById('todayPractices').textContent = data.today_practices;
+            document.getElementById('weekPractices').textContent = data.week_practices;
+            document.getElementById('monthPractices').textContent = data.month_practices;
+            document.getElementById('avgScore').textContent = data.avg_score;
+            document.getElementById('streak').textContent = data.streak;
+            document.getElementById('mistakeCount').textContent = data.total_mistakes - data.reviewed_mistakes;
+            
+            // 趋势指示
+            const trendEl = document.createElement('div');
+            trendEl.className = 'trend-indicator';
+            if (data.trend > 0) {
+                trendEl.innerHTML = `<span class="trend-up">↑ +${data.trend}分</span>`;
+            } else if (data.trend < 0) {
+                trendEl.innerHTML = `<span class="trend-down">↓ ${data.trend}分</span>`;
+            } else {
+                trendEl.innerHTML = `<span class="trend-stable">→ 持平</span>`;
+            }
+            document.getElementById('avgScore').appendChild(trendEl);
+        }
+        
+        // 加载学习趋势
+        async function loadLearningTrends() {
+            const response = await fetch('/api/learning_trends');
+            const data = await response.json();
+            
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.trends.map(t => t.date),
+                    datasets: [
+                        {
+                            label: '平均分',
+                            data: data.trends.map(t => t.avg_score),
+                            borderColor: '#6C63FF',
+                            backgroundColor: 'rgba(108, 99, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '练习次数',
+                            data: data.trends.map(t => t.practice_count),
+                            borderColor: '#4ECDC4',
+                            backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: '分数'
+                            },
+                            min: 0,
+                            max: 100
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '次数'
+                            },
+                            min: 0,
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 加载知识点掌握情况
+        async function loadKnowledgeMastery() {
+            const response = await fetch('/api/knowledge_mastery');
+            const data = await response.json();
+            
+            const grid = document.getElementById('masteryGrid');
+            grid.innerHTML = '';
+            
+            const colors = ['#6C63FF', '#FF6B6B', '#4ECDC4', '#FFD43B', '#FF8C42'];
+            
+            data.mastery.forEach((item, index) => {
+                const color = colors[index % colors.length];
+                const card = document.createElement('div');
+                card.className = 'mastery-card';
+                card.innerHTML = `
+                    <div class="mastery-header">
+                        <span class="mastery-name">${item.name}</span>
+                        <span class="mastery-accuracy" style="color: ${color}">${item.accuracy}%</span>
+                    </div>
+                    <div class="mastery-bar">
+                        <div class="mastery-fill" style="width: ${item.accuracy}%; background: ${color}"></div>
+                    </div>
+                    <div class="mastery-stats">
+                        <span>正确: ${item.correct}/${item.total}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        // 加载薄弱知识点
+        async function loadWeakPoints() {
+            const response = await fetch('/api/weak_points');
+            const data = await response.json();
+            
+            const list = document.getElementById('weakList');
+            list.innerHTML = '';
+            
+            if (data.weak_points.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🎉</div>
+                        <h3>太棒了！</h3>
+                        <p>暂时没有明显的薄弱知识点，继续保持！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            data.weak_points.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'weak-card';
+                card.innerHTML = `
+                    <div class="weak-header">
+                        <span class="weak-name">${item.name}</span>
+                        <span class="weak-count">错题 ${item.count} 道</span>
+                    </div>
+                    <div class="weak-examples">
+                        ${item.examples.slice(0, 2).map(ex => `
+                            <div class="weak-example">
+                                <span class="wrong">❌ ${ex.wrong_answer}</span>
+                                <span class="correct">✅ ${ex.correct_answer}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+        
+        // 加载学习建议
+        async function loadSuggestions() {
+            const response = await fetch('/api/generate_suggestions');
+            const data = await response.json();
+            
+            const list = document.getElementById('suggestionsList');
+            list.innerHTML = '';
+            
+            data.suggestions.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `suggestion-card ${item.type}`;
+                card.innerHTML = `
+                    <div class="suggestion-icon">${item.icon}</div>
+                    <div class="suggestion-content">
+                        <h3>${item.title}</h3>
+                        <p>${item.content}</p>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+        
+        // 页面加载时获取数据
+        window.onload = function() {
+            loadLearningReport();
+            loadLearningTrends();
+            loadKnowledgeMastery();
+            loadWeakPoints();
+            loadSuggestions();
+        };
+    </script>
+    
+    <style>
+        /* 统计卡片网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 22px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+        }
+        
+        .stat-card.today { border-left-color: #6C63FF; }
+        .stat-card.week { border-left-color: #4ECDC4; }
+        .stat-card.month { border-left-color: #FF6B6B; }
+        .stat-card.score { border-left-color: #FFD43B; }
+        .stat-card.streak { border-left-color: #FF8C42; }
+        .stat-card.mistakes { border-left-color: #FF6B6B; }
+        
+        .stat-icon {
+            font-size: 36px;
+        }
+        
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: 800;
+            color: #333;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .trend-indicator {
+            margin-top: 5px;
+        }
+        
+        .trend-up {
+            color: #51CF66;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .trend-down {
+            color: #FF6B6B;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .trend-stable {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        /* 图表区域 */
+        .chart-section {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        /* 知识点掌握 */
+        .mastery-section {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .mastery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 18px;
+        }
+        
+        .mastery-card {
+            background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+            border-radius: 15px;
+            padding: 18px;
+            border: 2px solid #F0F0F0;
+        }
+        
+        .mastery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .mastery-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .mastery-accuracy {
+            font-size: 24px;
+            font-weight: 800;
+        }
+        
+        .mastery-bar {
+            height: 10px;
+            background: #E8E8E8;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .mastery-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.8s ease;
+        }
+        
+        .mastery-stats {
+            font-size: 13px;
+            color: #888;
+        }
+        
+        /* 薄弱知识点 */
+        .weak-section {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .weak-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .weak-card {
+            background: #FFF5F5;
+            border-radius: 15px;
+            padding: 18px;
+            border-left: 4px solid #FF6B6B;
+        }
+        
+        .weak-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .weak-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .weak-count {
+            font-size: 14px;
+            color: #FF6B6B;
+            font-weight: 600;
+        }
+        
+        .weak-examples {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .weak-example {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+        }
+        
+        .weak-example .wrong {
+            color: #FF6B6B;
+        }
+        
+        .weak-example .correct {
+            color: #51CF66;
+        }
+        
+        /* 学习建议 */
+        .suggestions-section {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .suggestions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .suggestion-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 18px;
+            padding: 20px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+            border: 2px solid #F0F0F0;
+            transition: all 0.3s ease;
+        }
+        
+        .suggestion-card:hover {
+            transform: translateX(5px);
+            border-color: #6C63FF;
+        }
+        
+        .suggestion-icon {
+            font-size: 32px;
+            min-width: 40px;
+        }
+        
+        .suggestion-content h3 {
+            color: #333;
+            margin-bottom: 6px;
+            font-size: 17px;
+        }
+        
+        .suggestion-content p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .suggestion-card.practice { border-left-color: #6C63FF; }
+        .suggestion-card.score { border-left-color: #4ECDC4; }
+        .suggestion-card.weakness { border-left-color: #FF6B6B; }
+        .suggestion-card.streak { border-left-color: #FF8C42; }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .empty-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+        
+        .empty-state h3 {
+            color: #6C63FF;
+            margin-bottom: 8px;
+        }
+        
+        .empty-state p {
+            color: #888;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .mastery-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-card {
+                padding: 18px;
+            }
+            
+            .stat-number {
+                font-size: 28px;
+            }
+        }
+    </style>
+</body>
+</html>

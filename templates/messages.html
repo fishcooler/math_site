@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💬 留言板 - 数苗乐园</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">🌱</span>
+                    <span class="logo-text">数苗乐园</span>
+                </div>
+                <h1>💬 家长留言板</h1>
+                <span class="user-name">{{ user_name }} · ⭐ {{ user_points }} 积分</span>
+            </div>
+            <div class="header-right">
+                <a href="/practice" class="btn-secondary">📝 返回练习</a>
+                <a href="/parent" class="btn-secondary">👨‍👩‍👧 家长看板</a>
+                <a href="/achievements" class="btn-secondary">🏆 成就墙</a>
+                <a href="/logout" class="btn-logout">退出</a>
+            </div>
+        </header>
+        
+        <!-- 发表留言 -->
+        <div class="message-form-section">
+            <h2 class="section-title">📝 发表留言</h2>
+            <div class="message-form">
+                <div class="form-group">
+                    <label>留言类型</label>
+                    <div class="category-options">
+                        <label class="category-option active" data-category="feedback">
+                            <input type="radio" name="category" value="feedback" checked>
+                            <span class="category-icon">💬</span>
+                            <span>问题反馈</span>
+                        </label>
+                        <label class="category-option" data-category="suggestion">
+                            <input type="radio" name="category" value="suggestion">
+                            <span class="category-icon">💡</span>
+                            <span>建议想法</span>
+                        </label>
+                        <label class="category-option" data-category="question">
+                            <input type="radio" name="category" value="question">
+                            <span class="category-icon">❓</span>
+                            <span>疑问咨询</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>留言内容</label>
+                    <textarea id="messageContent" placeholder="请描述您遇到的问题或想法…" maxlength="500" rows="4"></textarea>
+                    <div class="char-count"><span id="charCount">0</span>/500</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="anonymousCheck">
+                        <span class="checkbox-custom"></span>
+                        <span>匿名发布</span>
+                    </label>
+                </div>
+                
+                <button onclick="submitMessage()" class="btn-primary" id="submitBtn">发布留言</button>
+            </div>
+        </div>
+        
+        <!-- 留言筛选 -->
+        <div class="filter-section">
+            <div class="filter-options">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="feedback">💬 问题反馈</button>
+                <button class="filter-btn" data-filter="suggestion">💡 建议想法</button>
+                <button class="filter-btn" data-filter="question">❓ 疑问咨询</button>
+            </div>
+        </div>
+        
+        <!-- 留言列表 -->
+        <div class="messages-section">
+            <div id="messagesList" class="messages-list">
+                <div class="loading">正在加载留言...</div>
+            </div>
+            
+            <div id="loadMore" class="load-more" style="display: none;">
+                <button onclick="loadMessages(true)" class="btn-secondary">加载更多</button>
+            </div>
+            
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">💬</div>
+                <h3>暂无留言</h3>
+                <p>成为第一个留言的家长吧！</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 1;
+        let currentCategory = 'all';
+        let hasMore = true;
+        
+        // 页面加载
+        window.onload = function() {
+            // 类型选择
+            document.querySelectorAll('.category-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.category-option').forEach(o => o.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // 字数统计
+            document.getElementById('messageContent').addEventListener('input', function() {
+                document.getElementById('charCount').textContent = this.value.length;
+            });
+            
+            // 筛选按钮
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentCategory = this.dataset.filter;
+                    currentPage = 1;
+                    hasMore = true;
+                    loadMessages();
+                });
+            });
+            
+            // 加载留言
+            loadMessages();
+        };
+        
+        // 加载留言
+        async function loadMessages(append = false) {
+            if (!append) {
+                document.getElementById('messagesList').innerHTML = '<div class="loading">正在加载留言...</div>';
+                currentPage = 1;
+            }
+            
+            try {
+                const response = await fetch(`/api/messages?page=${currentPage}&category=${currentCategory}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('messagesList').innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+                
+                if (!append) {
+                    document.getElementById('messagesList').innerHTML = '';
+                }
+                
+                if (data.messages.length === 0 && !append) {
+                    document.getElementById('emptyState').style.display = 'block';
+                    document.getElementById('loadMore').style.display = 'none';
+                    return;
+                }
+                
+                document.getElementById('emptyState').style.display = 'none';
+                
+                data.messages.forEach(msg => {
+                    const card = createMessageCard(msg);
+                    document.getElementById('messagesList').appendChild(card);
+                });
+                
+                // 是否有更多
+                hasMore = currentPage < data.pages;
+                document.getElementById('loadMore').style.display = hasMore ? 'block' : 'none';
+                
+                if (append) {
+                    currentPage++;
+                }
+            } catch (error) {
+                console.error('加载留言失败:', error);
+            }
+        }
+        
+        // 创建留言卡片
+        function createMessageCard(msg) {
+            const card = document.createElement('div');
+            card.className = 'message-card';
+            card.id = `message-${msg.id}`;
+            
+            const categoryIcons = {
+                'feedback': '💬',
+                'suggestion': '💡',
+                'question': '❓'
+            };
+            
+            const categoryNames = {
+                'feedback': '问题反馈',
+                'suggestion': '建议想法',
+                'question': '疑问咨询'
+            };
+            
+            card.innerHTML = `
+                <div class="message-header">
+                    <div class="message-meta">
+                        <span class="message-category">${categoryIcons[msg.category] || '💬'} ${categoryNames[msg.category] || '留言'}</span>
+                        <span class="message-author">${msg.author}</span>
+                    </div>
+                    <span class="message-time">${msg.created_at}</span>
+                </div>
+                <div class="message-content">${escapeHtml(msg.content)}</div>
+                ${msg.is_owner ? `<div class="message-actions">
+                    <button onclick="deleteMessage(${msg.id})" class="btn-delete">🗑️ 删除</button>
+                </div>` : ''}
+            `;
+            
+            return card;
+        }
+        
+        // 提交留言
+        async function submitMessage() {
+            const content = document.getElementById('messageContent').value.trim();
+            const category = document.querySelector('.category-option.active').dataset.category;
+            const isAnonymous = document.getElementById('anonymousCheck').checked;
+            
+            if (!content) {
+                alert('请输入留言内容');
+                return;
+            }
+            
+            if (content.length < 5) {
+                alert('留言内容至少5个字');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '发布中...';
+            
+            try {
+                const response = await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content,
+                        category,
+                        is_anonymous: isAnonymous
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message + (data.points_earned ? `\n获得 +${data.points_earned} 积分！` : ''));
+                    document.getElementById('messageContent').value = '';
+                    document.getElementById('charCount').textContent = '0';
+                    loadMessages(); // 刷新列表
+                } else {
+                    alert(data.message || '发布失败');
+                }
+            } catch (error) {
+                alert('发布失败，请重试');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '发布留言';
+            }
+        }
+        
+        // 删除留言
+        async function deleteMessage(messageId) {
+            if (!confirm('确定要删除这条留言吗？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/messages/${messageId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 移除卡片
+                    const card = document.getElementById(`message-${messageId}`);
+                    if (card) {
+                        card.style.animation = 'fadeOut 0.3s ease';
+                        setTimeout(() => card.remove(), 300);
+                    }
+                } else {
+                    alert(data.message || '删除失败');
+                }
+            } catch (error) {
+                alert('删除失败，请重试');
+            }
+        }
+        
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+    
+    <style>
+        /* 留言表单 */
+        .message-form-section {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .message-form {
+            max-width: 600px;
+        }
+        
+        .category-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .category-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 18px;
+            border: 2px solid #E8E8E8;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #F8F9FA;
+        }
+        
+        .category-option:hover {
+            border-color: #6C63FF;
+            background: #F0F0FF;
+        }
+        
+        .category-option.active {
+            border-color: #6C63FF;
+            background: linear-gradient(135deg, #F0F0FF 0%, #FFFFFF 100%);
+        }
+        
+        .category-option input[type="radio"] {
+            display: none;
+        }
+        
+        .category-icon {
+            font-size: 20px;
+        }
+        
+        .category-option span:last-child {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 3px solid #E8E8E8;
+            border-radius: 12px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 100px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #6C63FF;
+            box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.1);
+        }
+        
+        .char-count {
+            text-align: right;
+            font-size: 13px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        /* 筛选 */
+        .filter-section {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .filter-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 10px 18px;
+            border: 2px solid #E8E8E8;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn:hover {
+            border-color: #6C63FF;
+            color: #6C63FF;
+        }
+        
+        .filter-btn.active {
+            background: linear-gradient(135deg, #6C63FF 0%, #8B83FF 100%);
+            color: white;
+            border-color: transparent;
+        }
+        
+        /* 留言列表 */
+        .messages-section {
+            min-height: 300px;
+        }
+        
+        .messages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        
+        .message-card {
+            background: white;
+            border-radius: 20px;
+            padding: 22px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .message-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .message-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .message-category {
+            padding: 4px 12px;
+            background: #F0F0FF;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6C63FF;
+        }
+        
+        .message-author {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .message-time {
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .message-content {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #444;
+            margin-bottom: 15px;
+            word-break: break-word;
+        }
+        
+        .message-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .btn-delete {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 12px;
+            background: #FFEBEE;
+            color: #FF6B6B;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-delete:hover {
+            background: #FF6B6B;
+            color: white;
+        }
+        
+        /* 加载更多 */
+        .load-more {
+            text-align: center;
+            margin-top: 25px;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #FF6B6B;
+        }
+        
+        /* 动画 */
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .category-options {
+                flex-direction: column;
+            }
+            
+            .filter-options {
+                flex-direction: column;
+            }
+            
+            .filter-btn {
+                width: 100%;
+            }
+            
+            .message-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+    </style>
+</body>
+</html>

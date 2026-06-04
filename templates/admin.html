@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚙️ 管理后台 - 数苗乐园</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">🌱</span>
+                    <span class="logo-text">数苗乐园</span>
+                </div>
+                <h1>⚙️ 管理后台</h1>
+            </div>
+            <div class="header-right">
+                <a href="/" class="btn-secondary">🏠 返回首页</a>
+            </div>
+        </header>
+        
+        <!-- 登录表单 -->
+        <div id="loginSection" class="admin-section">
+            <div class="admin-card">
+                <h2>🔐 管理员登录</h2>
+                <div class="form-group">
+                    <label>管理密码</label>
+                    <input type="password" id="adminPassword" placeholder="请输入管理密码">
+                </div>
+                <button onclick="adminLogin()" class="btn-primary">登录</button>
+                <p class="hint">默认密码：admin123</p>
+            </div>
+        </div>
+        
+        <!-- 配置面板 -->
+        <div id="configSection" class="admin-section" style="display: none;">
+            <div class="admin-card">
+                <h2>🤖 AI配置</h2>
+                <div class="config-status" id="configStatus">
+                    <span class="status-icon">⚪</span>
+                    <span class="status-text">未检测</span>
+                </div>
+                
+                <div class="form-group">
+                    <label>API地址</label>
+                    <input type="text" id="aiApiUrl" placeholder="https://api.deepseek.com/v1/chat/completions">
+                    <small>DeepSeek、OpenAI、智谱AI等API地址</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="aiApiKey" placeholder="sk-xxx…xxxx">
+                    <small>留空表示使用离线模式</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>模型名称</label>
+                    <input type="text" id="aiModel" placeholder="deepseek-chat">
+                    <small>如：deepseek-chat、gpt-3.5-turbo、glm-4</small>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="testConnection()" class="btn-secondary">🔍 测试连接</button>
+                    <button onclick="saveConfig()" class="btn-primary">💾 保存配置</button>
+                </div>
+                
+                <div id="testResult" class="test-result"></div>
+            </div>
+            
+            <div class="admin-card">
+                <h2>📋 配置说明</h2>
+                <div class="help-content">
+                    <h3>推荐AI服务</h3>
+                    <table class="config-table">
+                        <tr>
+                            <th>服务</th>
+                            <th>API地址</th>
+                            <th>价格</th>
+                        </tr>
+                        <tr>
+                            <td>DeepSeek（推荐）</td>
+                            <td>https://api.deepseek.com/v1/chat/completions</td>
+                            <td>¥1/百万tokens</td>
+                        </tr>
+                        <tr>
+                            <td>智谱AI</td>
+                            <td>https://open.bigmodel.cn/api/paas/v4/chat/completions</td>
+                            <td>¥10/百万tokens</td>
+                        </tr>
+                        <tr>
+                            <td>OpenAI</td>
+                            <td>https://api.openai.com/v1/chat/completions</td>
+                            <td>$0.5/百万tokens</td>
+                        </tr>
+                    </table>
+                    
+                    <h3>配置方式</h3>
+                    <ul>
+                        <li><strong>方式一：</strong>通过本页面配置（推荐，即时生效）</li>
+                        <li><strong>方式二：</strong>创建 <code>.env</code> 文件</li>
+                        <li><strong>方式三：</strong>设置环境变量</li>
+                    </ul>
+                    
+                    <h3>安全提示</h3>
+                    <ul>
+                        <li>⚠️ 请勿将API Key泄露给他人</li>
+                        <li>⚠️ 建议定期更换API Key</li>
+                        <li>⚠️ 可在AI服务后台设置使用限额</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isAdmin = false;
+        
+        // 管理员登录
+        async function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            
+            const response = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                isAdmin = true;
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('configSection').style.display = 'block';
+                loadConfig();
+            } else {
+                alert(data.message || '登录失败');
+            }
+        }
+        
+        // 加载配置
+        async function loadConfig() {
+            const response = await fetch('/api/admin/config');
+            const data = await response.json();
+            
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            
+            document.getElementById('aiApiUrl').value = data.ai_api_url || '';
+            document.getElementById('aiModel').value = data.ai_model || '';
+            
+            // 更新状态
+            const statusEl = document.getElementById('configStatus');
+            if (data.ai_api_key_set) {
+                statusEl.innerHTML = '<span class="status-icon">🟢</span><span class="status-text">已配置</span>';
+            } else {
+                statusEl.innerHTML = '<span class="status-icon">🟡</span><span class="status-text">未配置（离线模式）</span>';
+            }
+        }
+        
+        // 测试连接
+        async function testConnection() {
+            const resultEl = document.getElementById('testResult');
+            resultEl.innerHTML = '<div class="testing">⏳ 测试中...</div>';
+            
+            const response = await fetch('/api/admin/test_ai', {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                resultEl.innerHTML = `<div class="success">✅ ${data.message}</div>`;
+            } else {
+                resultEl.innerHTML = `<div class="error">❌ ${data.message}</div>`;
+            }
+        }
+        
+        // 保存配置
+        async function saveConfig() {
+            const apiUrl = document.getElementById('aiApiUrl').value;
+            const apiKey = document.getElementById('aiApiKey').value;
+            const model = document.getElementById('aiModel').value;
+            
+            const configData = {};
+            if (apiUrl) configData.ai_api_url = apiUrl;
+            if (apiKey) configData.ai_api_key = apiKey;
+            if (model) configData.ai_model = model;
+            
+            // 更新运行时配置
+            const response = await fetch('/api/admin/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(configData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // 保存到文件
+                const saveResponse = await fetch('/api/admin/save_config', {
+                    method: 'POST'
+                });
+                
+                const saveData = await saveResponse.json();
+                
+                if (saveData.success) {
+                    alert('✅ 配置已保存并持久化！');
+                    loadConfig();
+                } else {
+                    alert('⚠️ 配置已更新，但保存到文件失败：' + saveData.message);
+                }
+            } else {
+                alert('❌ 保存失败：' + data.message);
+            }
+        }
+        
+        // 回车登录
+        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                adminLogin();
+            }
+        });
+    </script>
+    
+    <style>
+        .admin-section {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .admin-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .admin-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .config-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .status-icon {
+            font-size: 12px;
+        }
+        
+        .hint {
+            color: #888;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .test-result .testing {
+            color: #666;
+        }
+        
+        .test-result .success {
+            color: #4CAF50;
+            background: #E8F5E9;
+        }
+        
+        .test-result .error {
+            color: #f44336;
+            background: #FFEBEE;
+        }
+        
+        .help-content {
+            color: #555;
+        }
+        
+        .help-content h3 {
+            color: #333;
+            font-size: 16px;
+            margin: 20px 0 10px;
+        }
+        
+        .help-content ul {
+            padding-left: 20px;
+        }
+        
+        .help-content li {
+            margin: 8px 0;
+        }
+        
+        .help-content code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        
+        .config-table th,
+        .config-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .config-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .config-table td:nth-child(2) {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        small {
+            display: block;
+            color: #888;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📖 错题本 - {{ user_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <h1>📖 我的错题本</h1>
+                <span class="user-name">{{ user_name }}</span>
+            </div>
+            <div class="header-right">
+                <a href="/practice" class="btn-secondary">📝 去练习</a>
+                <a href="/logout" class="btn-logout">退出</a>
+            </div>
+        </header>
+        
+        <div class="mistakes-container">
+            {% if mistakes %}
+                <div class="mistakes-stats">
+                    <div class="stat-card">
+                        <span class="stat-number">{{ mistakes|length }}</span>
+                        <span class="stat-label">总错题数</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">{{ mistakes|selectattr('reviewed')|list|length }}</span>
+                        <span class="stat-label">已复习</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">{{ mistakes|rejectattr('reviewed')|list|length }}</span>
+                        <span class="stat-label">待复习</span>
+                    </div>
+                </div>
+                
+                <div class="mistakes-list">
+                    {% for mistake in mistakes %}
+                    <div class="mistake-card {% if mistake.reviewed %}reviewed{% endif %}" id="mistake-{{ mistake.id }}">
+                        <div class="mistake-header">
+                            <span class="mistake-date">{{ mistake.created_at.strftime('%m月%d日') }}</span>
+                            <span class="review-badge {% if mistake.reviewed %}done{% else %}pending{% endif %}">
+                                {% if mistake.reviewed %}已复习{% else %}待复习{% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="mistake-content">
+                            <p class="question-text">{{ mistake.question_id }}号题</p>
+                            <div class="answer-comparison">
+                                <div class="wrong-answer">
+                                    <span class="label">你的答案：</span>
+                                    <span class="value">{{ mistake.wrong_answer or '未作答' }}</span>
+                                </div>
+                                <div class="correct-answer">
+                                    <span class="label">正确答案：</span>
+                                    <span class="value">{{ mistake.correct_answer }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="explanation">
+                                <span class="label">💡 解答：</span>
+                                <p>{{ mistake.explanation }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mistake-actions">
+                            {% if not mistake.reviewed %}
+                            <button onclick="markReviewed({{ mistake.id }})" class="btn-small btn-success">
+                                标记已复习 ✅
+                            </button>
+                            {% endif %}
+                            <button onclick="deleteMistake({{ mistake.id }})" class="btn-small btn-danger">
+                                删除 🗑️
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🎉</div>
+                    <h3>太棒了！</h3>
+                    <p>你还没有错题，继续保持哦！</p>
+                    <a href="/practice" class="btn-primary">去练习</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        async function markReviewed(mistakeId) {
+            const response = await fetch(`/api/mark_reviewed/${mistakeId}`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                const card = document.getElementById(`mistake-${mistakeId}`);
+                card.classList.add('reviewed');
+                const badge = card.querySelector('.review-badge');
+                badge.textContent = '已复习';
+                badge.classList.remove('pending');
+                badge.classList.add('done');
+                
+                // 移除按钮
+                const btn = card.querySelector('.btn-success');
+                if (btn) btn.remove();
+                
+                location.reload();
+            }
+        }
+        
+        async function deleteMistake(mistakeId) {
+            if (!confirm('确定要删除这道错题吗？')) return;
+            
+            const response = await fetch(`/api/delete_mistake/${mistakeId}`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                const card = document.getElementById(`mistake-${mistakeId}`);
+                card.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    if (document.querySelectorAll('.mistake-card').length === 0) {
+                        location.reload();
+                    }
+                }, 300);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 排行榜 - 数苗乐园</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <h1>📊 积分排行榜</h1>
+                <span class="user-name">你好，{{ user_name }}！ ⭐ {{ user_points }} 积分</span>
+            </div>
+            <div class="header-right">
+                <a href="/practice" class="btn-secondary">📝 返回练习</a>
+                <a href="/achievements" class="btn-secondary">🏆 成就墙</a>
+                <a href="/mistakes" class="btn-secondary">📖 错题本</a>
+                <a href="/logout" class="btn-logout">退出</a>
+            </div>
+        </header>
+        
+        <!-- 我的排名 -->
+        {% if user_rank %}
+        <div class="my-rank-card">
+            <div class="rank-info">
+                <span class="rank-label">我的排名</span>
+                <span class="rank-number">第 {{ user_rank.rank }} 名</span>
+            </div>
+            <div class="rank-stats">
+                <div class="rank-stat">
+                    <span class="stat-value">{{ user_rank.points }}</span>
+                    <span class="stat-label">积分</span>
+                </div>
+                <div class="rank-stat">
+                    <span class="stat-value">{{ user_rank.total }}</span>
+                    <span class="stat-label">总人数</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 排行榜列表 -->
+        <div class="leaderboard-section">
+            <h2 class="section-title">🏆 积分排行榜 TOP 10</h2>
+            
+            {% if top_users %}
+            <div class="leaderboard-list">
+                {% for user in top_users %}
+                <div class="leaderboard-item {{ 'top3' if user.rank <= 3 else '' }}">
+                    <div class="rank-badge">
+                        {% if user.rank == 1 %}🥇
+                        {% elif user.rank == 2 %}🥈
+                        {% elif user.rank == 3 %}🥉
+                        {% else %}{{ user.rank }}
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">{{ user.name }}</span>
+                        <span class="practice-count">练习 {{ user.practice_count }} 次</span>
+                    </div>
+                    <div class="user-points">
+                        <span class="points-value">{{ user.points }}</span>
+                        <span class="points-label">积分</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📊</div>
+                <h3>暂无数据</h3>
+                <p>还没有用户积分记录</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- 积分规则 -->
+        <div class="rules-section">
+            <h2 class="section-title">📋 积分规则</h2>
+            <div class="rules-grid">
+                <div class="rule-item">
+                    <span class="rule-icon">📝</span>
+                    <span class="rule-desc">完成一套练习</span>
+                    <span class="rule-points">+10</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">🌟</span>
+                    <span class="rule-desc">得分90分以上</span>
+                    <span class="rule-points">+20</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">💯</span>
+                    <span class="rule-desc">获得满分</span>
+                    <span class="rule-points">+50</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">🔥</span>
+                    <span class="rule-desc">连续练习3天</span>
+                    <span class="rule-points">+30</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">🔥🔥</span>
+                    <span class="rule-desc">连续练习7天</span>
+                    <span class="rule-points">+100</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">📖</span>
+                    <span class="rule-desc">复习错题</span>
+                    <span class="rule-points">+5</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

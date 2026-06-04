@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏆 成就墙 - 数苗乐园</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <h1>🏆 成就墙</h1>
+                <span class="user-name">你好，{{ user_name }}！ ⭐ {{ user_points }} 积分</span>
+            </div>
+            <div class="header-right">
+                <a href="/practice" class="btn-secondary">📝 返回练习</a>
+                <a href="/leaderboard" class="btn-secondary">📊 排行榜</a>
+                <a href="/mistakes" class="btn-secondary">📖 错题本</a>
+                <a href="/logout" class="btn-logout">退出</a>
+            </div>
+        </header>
+        
+        <!-- 成就统计 -->
+        <div class="achievement-stats">
+            <div class="stat-card">
+                <span class="stat-number">{{ user_achievements|length }}</span>
+                <span class="stat-label">已解锁</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ all_achievements|length }}</span>
+                <span class="stat-label">总成就</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ ((user_achievements|length / all_achievements|length) * 100)|int }}%</span>
+                <span class="stat-label">完成度</span>
+            </div>
+        </div>
+        
+        <!-- 进度条 -->
+        <div class="achievement-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ (user_achievements|length / all_achievements|length * 100)|int }}%"></div>
+            </div>
+            <span class="progress-text">{{ user_achievements|length }} / {{ all_achievements|length }}</span>
+        </div>
+        
+        <!-- 已解锁成就 -->
+        {% if user_achievements %}
+        <div class="section">
+            <h2 class="section-title">✨ 已解锁成就</h2>
+            <div class="achievements-grid">
+                {% for ach in user_achievements %}
+                <div class="achievement-card unlocked">
+                    <div class="achievement-icon">{{ ach.icon }}</div>
+                    <div class="achievement-info">
+                        <h3>{{ ach.name }}</h3>
+                        <p>{{ ach.description }}</p>
+                        <span class="achievement-time">{{ ach.earned_at }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 所有成就 -->
+        <div class="section">
+            <h2 class="section-title">🎯 所有成就</h2>
+            <div class="achievements-grid">
+                {% for ach in all_achievements %}
+                <div class="achievement-card {{ 'unlocked' if ach.earned else 'locked' }}">
+                    <div class="achievement-icon">{{ ach.icon if ach.earned else '🔒' }}</div>
+                    <div class="achievement-info">
+                        <h3>{{ ach.name if ach.earned else '???' }}</h3>
+                        <p>{{ ach.description if ach.earned else '继续努力解锁这个成就！' }}</p>
+                        {% if ach.points > 0 %}
+                        <span class="achievement-points">+{{ ach.points }} 积分</span>
+                        {% endif %}
+                    </div>
+                    {% if ach.earned %}
+                    <div class="achievement-badge">✅</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
