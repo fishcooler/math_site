@@ -88,6 +88,7 @@ class User(db.Model):
     mistakes = db.relationship('Mistake', backref='user', lazy=True)
     achievements = db.relationship('UserAchievement', backref='user', lazy=True)
     point_logs = db.relationship('PointLog', backref='user', lazy=True)
+    stickers = db.relationship('UserSticker', backref='user', lazy=True)
 
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -157,6 +158,61 @@ class Message(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     
     user = db.relationship('User', backref='messages')
+
+
+class Sticker(db.Model):
+    """贴纸定义"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    icon = db.Column(db.String(10), nullable=False)
+    series = db.Column(db.String(30), nullable=False, default='通用')
+    price = db.Column(db.Integer, nullable=False, default=30)
+    description = db.Column(db.String(200), default='')
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+
+class UserSticker(db.Model):
+    """用户获得的贴纸"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    sticker_id = db.Column(db.Integer, db.ForeignKey('sticker.id'), nullable=False)
+    obtained_at = db.Column(db.DateTime, default=datetime.now)
+
+    sticker = db.relationship('Sticker', backref='user_stickers')
+
+
+class FairyRoomItem(db.Model):
+    """童话屋房间物品"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    icon = db.Column(db.String(10), nullable=False)
+    scene_position = db.Column(db.String(30), nullable=False, default='center')
+    unlock_condition_type = db.Column(db.String(30), nullable=False, default='sticker_count')
+    unlock_condition_value = db.Column(db.Integer, nullable=False, default=1)
+    story_description = db.Column(db.String(200), default='')
+    math_description = db.Column(db.String(200), default='')
+    sort_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+
+class UserFairyRoom(db.Model):
+    """用户已解锁的童话屋物品"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    room_item_id = db.Column(db.Integer, db.ForeignKey('fairy_room_item.id'), nullable=False)
+    unlocked_at = db.Column(db.DateTime, default=datetime.now)
+
+    room_item = db.relationship('FairyRoomItem', backref='user_unlocks')
+
+
+class UserGrowthStat(db.Model):
+    """用户养成数值"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    wisdom = db.Column(db.Integer, default=0)
+    courage = db.Column(db.Integer, default=0)
+    patience = db.Column(db.Integer, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
 
 
 # ==================== 敏感词过滤 ====================
@@ -893,6 +949,319 @@ class QuestionGenerator:
         return questions[:30]  # 最多返回30题
 
 
+# ==================== 养成系统 ====================
+
+
+class GrowthSystem:
+    """轻养成数值管理"""
+
+    SERIES_TAG_MAP = {
+        '计算': 'wisdom',
+        '比较': 'wisdom',
+        '规律': 'wisdom',
+        '应用题': 'courage',
+        '坚持': 'patience',
+    }
+
+    @staticmethod
+    def ensure_stats(user_id):
+        stat = UserGrowthStat.query.filter_by(user_id=user_id).first()
+        if not stat:
+            stat = UserGrowthStat(user_id=user_id)
+            db.session.add(stat)
+            db.session.commit()
+        return stat
+
+    @staticmethod
+    def add_sticker_series_growth(series_name):
+        tag = GrowthSystem.SERIES_TAG_MAP.get(series_name, 'wisdom')
+        return {tag: 3}
+
+    @staticmethod
+    def apply_sticker_growth(user_id, series_name):
+        delta = GrowthSystem.add_sticker_series_growth(series_name)
+        return GrowthSystem.apply_growth_delta(user_id, delta)
+
+    @staticmethod
+    def apply_growth_delta(user_id, delta):
+        stat = GrowthSystem.ensure_stats(user_id)
+        for key, value in delta.items():
+            if not isinstance(value, int) or value == 0:
+                continue
+            setattr(stat, key, max(0, getattr(stat, key, 0) + value))
+        stat.updated_at = datetime.now()
+        db.session.commit()
+        return GrowthSystem.to_dict(stat)
+
+    @staticmethod
+    def calculate_room_stage(growth):
+        total = (growth.get('wisdom', 0) or 0) + (growth.get('courage', 0) or 0) + (growth.get('patience', 0) or 0)
+        if total >= 90:
+            stage = 3
+            title = '闪光童话屋'
+            hint = '房间已经变得温暖、整齐又明亮，像一座真正的学习小屋。'
+        elif total >= 45:
+            stage = 2
+            title = '成长小屋'
+            hint = '房间开始变得有秩序，养成正在变成看得见的样子。'
+        else:
+            stage = 1
+            title = '起点小屋'
+            hint = '小屋刚刚起步，每一次练习都会让它更完整。'
+        return {
+            'stage': stage,
+            'title': title,
+            'hint': hint,
+            'total_growth': total
+        }
+
+    @staticmethod
+    def to_dict(stat):
+        return {
+            'wisdom': stat.wisdom or 0,
+            'courage': stat.courage or 0,
+            'patience': stat.patience or 0,
+            'updated_at': stat.updated_at.strftime('%Y-%m-%d %H:%M') if stat.updated_at else ''
+        }
+
+    @staticmethod
+    def get_growth_state(user_id):
+        stat = GrowthSystem.ensure_stats(user_id)
+        growth = GrowthSystem.to_dict(stat)
+        room_stage = GrowthSystem.calculate_room_stage(growth)
+        return {
+            'growth': growth,
+            'room_stage': room_stage
+        }
+
+
+# ==================== 童话屋系统 ====================
+
+
+class FairyHouseSystem:
+    """童话屋初始化与状态管理"""
+
+    DEFAULT_ITEMS = [
+        {
+            'name': '智慧书架',
+            'icon': '📚',
+            'scene_position': 'left',
+            'unlock_condition_type': 'sticker_count',
+            'unlock_condition_value': 1,
+            'story_description': '书架会记住你每一次认真练习的样子。',
+            'math_description': '整理错题和知识点，就像把书整齐放回书架。',
+            'sort_order': 10,
+        },
+        {
+            'name': '勇气小窗',
+            'icon': '🪟',
+            'scene_position': 'right',
+            'unlock_condition_type': 'sticker_count',
+            'unlock_condition_value': 2,
+            'story_description': '窗外的光，来自每一次不怕出错的练习。',
+            'math_description': '每一次尝试新题型，都像打开窗户看见新的风景。',
+            'sort_order': 20,
+        },
+        {
+            'name': '天平壁炉',
+            'icon': '⚖️',
+            'scene_position': 'center-left',
+            'unlock_condition_type': 'sticker_count',
+            'unlock_condition_value': 3,
+            'story_description': '屋里最温暖的地方，留给会比较、会思考的小朋友。',
+            'math_description': '比较大小和等式，就像心里放一座小天平。',
+            'sort_order': 30,
+        },
+        {
+            'name': '星星屋顶',
+            'icon': '🌟',
+            'scene_position': 'top',
+            'unlock_condition_type': 'sticker_count',
+            'unlock_condition_value': 4,
+            'story_description': '每收集一张贴纸，屋顶就多一颗亮晶晶的星星。',
+            'math_description': '坚持练习和打卡，会让学习像星星一样越来越亮。',
+            'sort_order': 40,
+        },
+        {
+            'name': '故事地毯',
+            'icon': '🧶',
+            'scene_position': 'center',
+            'unlock_condition_type': 'sticker_count',
+            'unlock_condition_value': 5,
+            'story_description': '地毯上藏着许多小故事，等着你去发现。',
+            'math_description': '应用题就像生活故事，把故事变成算式就不难了。',
+            'sort_order': 50,
+        },
+        {
+            'name': '彩虹花园',
+            'icon': '🌈',
+            'scene_position': 'bottom',
+            'unlock_condition_type': 'sticker_count',
+            'unlock_condition_value': 6,
+            'story_description': '花园代表成长，收集越多，颜色越亮。',
+            'math_description': '找规律就像看彩虹，一步一步都能连起来。',
+            'sort_order': 60,
+        },
+    ]
+
+    @staticmethod
+    def init_room_items():
+        for item in FairyHouseSystem.DEFAULT_ITEMS:
+            existing = FairyRoomItem.query.filter_by(name=item['name']).first()
+            if not existing:
+                db.session.add(FairyRoomItem(**item))
+        db.session.commit()
+
+    @staticmethod
+    def get_room_state(user_id):
+        items = FairyRoomItem.query.order_by(FairyRoomItem.sort_order, FairyRoomItem.id).all()
+        unlocked_ids = {
+            row.room_item_id
+            for row in UserFairyRoom.query.filter_by(user_id=user_id).all()
+        }
+        owned_sticker_count = UserSticker.query.filter_by(user_id=user_id).count()
+        growth_state = GrowthSystem.get_growth_state(user_id)
+
+        result = []
+        for item in items:
+            unlocked = item.id in unlocked_ids
+            can_unlock = (not unlocked) and (
+                item.unlock_condition_type == 'sticker_count' and owned_sticker_count >= item.unlock_condition_value
+            )
+            result.append({
+                'id': item.id,
+                'name': item.name,
+                'icon': item.icon,
+                'scene_position': item.scene_position,
+                'unlock_condition_type': item.unlock_condition_type,
+                'unlock_condition_value': item.unlock_condition_value,
+                'story_description': item.story_description,
+                'math_description': item.math_description,
+                'unlocked': unlocked,
+                'can_unlock': can_unlock,
+            })
+
+        return {
+            'owned_sticker_count': owned_sticker_count,
+            'unlocked_count': len([x for x in result if x['unlocked']]),
+            'total_count': len(result),
+            'room_items': result,
+            'growth': growth_state['growth'],
+            'room_stage': growth_state['room_stage'],
+        }
+
+    @staticmethod
+    def unlock_due_items(user_id):
+        owned_sticker_count = UserSticker.query.filter_by(user_id=user_id).count()
+        unlocked_ids = set()
+        for row in UserFairyRoom.query.filter_by(user_id=user_id).all():
+            unlocked_ids.add(row.room_item_id)
+
+        newly_unlocked = []
+        items = FairyRoomItem.query.order_by(FairyRoomItem.sort_order, FairyRoomItem.id).all()
+        for item in items:
+            if item.id in unlocked_ids:
+                continue
+            if item.unlock_condition_type == 'sticker_count' and owned_sticker_count >= item.unlock_condition_value:
+                record = UserFairyRoom(user_id=user_id, room_item_id=item.id)
+                db.session.add(record)
+                newly_unlocked.append({
+                    'id': item.id,
+                    'name': item.name,
+                    'icon': item.icon,
+                    'story_description': item.story_description,
+                    'math_description': item.math_description,
+                })
+
+        if newly_unlocked:
+            db.session.commit()
+
+        return newly_unlocked
+
+
+# ==================== 贴纸系统 ====================
+
+
+class StickerSystem:
+    """贴纸收集与兑换管理"""
+
+    DEFAULT_STICKERS = [
+        {'name': '加法小火苗', 'icon': '🔥', 'series': '计算', 'price': 30, 'description': '来自加法练习的勇气小火苗。'},
+        {'name': '减法雨滴', 'icon': '🌧️', 'series': '计算', 'price': 30, 'description': '减法就像梳理雨滴，越练越清楚。'},
+        {'name': '彩虹阶梯', 'icon': '🌈', 'series': '规律', 'price': 40, 'description': '一步一步找规律，就能看到彩虹。'},
+        {'name': '天平徽章', 'icon': '⚖️', 'series': '比较', 'price': 35, 'description': '比较大小时，心里要有一座小天平。'},
+        {'name': '小书包', 'icon': '🎒', 'series': '应用题', 'price': 45, 'description': '把生活问题装进书包，再用数学解决。'},
+        {'name': '坚持星星', 'icon': '⭐', 'series': '坚持', 'price': 50, 'description': '坚持练习的小朋友，才会收集到这颗星星。'},
+    ]
+
+    @staticmethod
+    def init_stickers():
+        for item in StickerSystem.DEFAULT_STICKERS:
+            existing = Sticker.query.filter_by(name=item['name']).first()
+            if not existing:
+                db.session.add(Sticker(**item))
+        db.session.commit()
+
+    @staticmethod
+    def get_catalog(user_id):
+        stickers = Sticker.query.order_by(Sticker.series, Sticker.id).all()
+        owned_ids = {
+            us.sticker_id
+            for us in UserSticker.query.filter_by(user_id=user_id).all()
+        }
+        result = []
+        for s in stickers:
+            result.append({
+                'id': s.id,
+                'name': s.name,
+                'icon': s.icon,
+                'series': s.series,
+                'price': s.price,
+                'description': s.description,
+                'owned': s.id in owned_ids
+            })
+        return result
+
+    @staticmethod
+    def get_user_stickers(user_id):
+        rows = (
+            UserSticker.query
+            .filter_by(user_id=user_id)
+            .order_by(UserSticker.obtained_at.desc())
+            .all()
+        )
+        return [{
+            'id': row.id,
+            'sticker_id': row.sticker_id,
+            'name': row.sticker.name,
+            'icon': row.sticker.icon,
+            'series': row.sticker.series,
+            'obtained_at': row.obtained_at.strftime('%Y-%m-%d %H:%M')
+        } for row in rows]
+
+    @staticmethod
+    def exchange_sticker(user_id, sticker_id):
+        user = User.query.get(user_id)
+        sticker = Sticker.query.get(sticker_id)
+        if not user or not sticker:
+            return False, '用户或贴纸不存在'
+
+        already_owned = UserSticker.query.filter_by(user_id=user_id, sticker_id=sticker_id).first()
+        if already_owned:
+            return False, '你已经拥有这张贴纸'
+
+        if user.points < sticker.price:
+            return False, '积分不足'
+
+        user.points -= sticker.price
+        log = PointLog(user_id=user_id, points=-sticker.price, reason=f'兑换贴纸：{sticker.name}')
+        user_sticker = UserSticker(user_id=user_id, sticker_id=sticker.id)
+        db.session.add(log)
+        db.session.add(user_sticker)
+        db.session.commit()
+        return True, '兑换成功'
+
+
 # ==================== 路由 ====================
 
 @app.route('/')
@@ -961,6 +1330,103 @@ def leaderboard():
                          user_points=user.points if user else 0,
                          top_users=top_users,
                          user_rank=user_rank)
+
+@app.route('/stickers')
+def stickers():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+
+    user = User.query.get(session['user_id'])
+    catalog = StickerSystem.get_catalog(session['user_id'])
+    user_stickers = StickerSystem.get_user_stickers(session['user_id'])
+    series_list = sorted({item['series'] for item in catalog})
+
+    return render_template('stickers.html',
+                         user_name=session['user_name'],
+                         user_points=user.points if user else 0,
+                         catalog=catalog,
+                         user_stickers=user_stickers,
+                         series_list=series_list,
+                         owned_count=len(user_stickers),
+                         total_count=len(catalog))
+
+@app.route('/api/exchange-sticker', methods=['POST'])
+def exchange_sticker():
+    if 'user_id' not in session:
+        return jsonify({'error': '请先登录'}), 401
+
+    data = request.get_json(silent=True) or {}
+    sticker_id = data.get('sticker_id')
+    if not sticker_id:
+        return jsonify({'success': False, 'message': '缺少sticker_id'}), 400
+
+    success, message = StickerSystem.exchange_sticker(session['user_id'], int(sticker_id))
+    if not success:
+        return jsonify({'success': False, 'message': message}), 400
+
+    owned_sticker = UserSticker.query.filter_by(user_id=session['user_id'], sticker_id=int(sticker_id)).first()
+    growth_after = None
+    if owned_sticker and owned_sticker.sticker:
+        growth_after = GrowthSystem.apply_sticker_growth(session['user_id'], owned_sticker.sticker.series)
+
+    newly_unlocked = FairyHouseSystem.unlock_due_items(session['user_id'])
+
+    return jsonify({
+        'success': True,
+        'message': message,
+        'user_points': User.query.get(session['user_id']).points,
+        'user_stickers': StickerSystem.get_user_stickers(session['user_id']),
+        'newly_unlocked_items': newly_unlocked,
+        'growth': growth_after,
+        'room_stage': GrowthSystem.calculate_room_stage(growth_after) if growth_after else None
+    })
+
+
+@app.route('/fairy-house')
+def fairy_house():
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
+
+    user = User.query.get(session['user_id'])
+    FairyHouseSystem.unlock_due_items(session['user_id'])
+    room_state = FairyHouseSystem.get_room_state(session['user_id'])
+
+    return render_template('fairy_house.html',
+                         user_name=session['user_name'],
+                         user_points=user.points if user else 0,
+                         room_state=room_state)
+
+
+@app.route('/api/fairy-house/item/<int:item_id>')
+def fairy_house_item_detail(item_id):
+    if 'user_id' not in session:
+        return jsonify({'error': '请先登录'}), 401
+
+    item = FairyRoomItem.query.get(item_id)
+    if not item:
+        return jsonify({'success': False, 'message': '物品不存在'}), 404
+
+    unlocked = UserFairyRoom.query.filter_by(user_id=session['user_id'], room_item_id=item.id).first() is not None
+    owned_sticker_count = UserSticker.query.filter_by(user_id=session['user_id']).count()
+    can_unlock = (not unlocked) and (
+        item.unlock_condition_type == 'sticker_count' and owned_sticker_count >= item.unlock_condition_value
+    )
+
+    return jsonify({
+        'success': True,
+        'item': {
+            'id': item.id,
+            'name': item.name,
+            'icon': item.icon,
+            'scene_position': item.scene_position,
+            'unlock_condition_type': item.unlock_condition_type,
+            'unlock_condition_value': item.unlock_condition_value,
+            'story_description': item.story_description,
+            'math_description': item.math_description,
+            'unlocked': unlocked,
+            'can_unlock': can_unlock
+        }
+    })
 
 @app.route('/api/generate_questions')
 def generate_questions():
@@ -1172,6 +1638,27 @@ def parent_dashboard():
     return render_template('parent.html', 
                          user_name=session['user_name'],
                          user_points=user.points if user else 0)
+
+@app.route('/api/parent_explain')
+def parent_explain():
+    """获取家长解释说明数据"""
+    if 'user_id' not in session:
+        return jsonify({'error': '请先登录'}), 401
+
+    user_id = session['user_id']
+    user_stickers = StickerSystem.get_user_stickers(user_id)
+    growth_state = GrowthSystem.get_growth_state(user_id)
+    room_state = FairyHouseSystem.get_room_state(user_id)
+
+    return jsonify({
+        'owned_sticker_count': len(user_stickers),
+        'growth': growth_state['growth'],
+        'room_stage': growth_state['room_stage'],
+        'room_unlocked_count': room_state['unlocked_count'],
+        'room_total_count': room_state['total_count'],
+        'latest_stickers': user_stickers[:5]
+    })
+
 
 @app.route('/api/learning_report')
 def learning_report():
@@ -1759,6 +2246,8 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         AchievementSystem.init_achievements()
+        StickerSystem.init_stickers()
+        FairyHouseSystem.init_room_items()
     
     print('=' * 50)
     print('🌱 数苗乐园 - 幼小衔接思维训练平台')

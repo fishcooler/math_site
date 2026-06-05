@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏠 童话屋 - 数苗乐园</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">🏠</span>
+                    <span class="logo-text">数苗乐园</span>
+                </div>
+                <h1>🏰 童话屋</h1>
+                <span class="user-name">{{ user_name }} · ⭐ {{ user_points }} 积分</span>
+            </div>
+            <div class="header-right">
+                <a href="/stickers" class="btn-secondary">🧷 贴纸屋</a>
+                <a href="/practice" class="btn-secondary">📝 返回练习</a>
+                <a href="/achievements" class="btn-secondary">🏆 成就墙</a>
+                <a href="/leaderboard" class="btn-secondary">📊 排行榜</a>
+                <a href="/logout" class="btn-logout">退出</a>
+            </div>
+        </header>
+
+        <div class="achievement-stats">
+            <div class="stat-card">
+                <span class="stat-number">{{ room_state.owned_sticker_count }}</span>
+                <span class="stat-label">已收集贴纸</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ room_state.unlocked_count }}</span>
+                <span class="stat-label">已解锁物品</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ ((room_state.unlocked_count / room_state.total_count) * 100)|int if room_state.total_count else 0 }}%</span>
+                <span class="stat-label">房间完成度</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ room_state.room_stage.title }}</span>
+                <span class="stat-label">房间阶段</span>
+            </div>
+        </div>
+
+        <div class="achievement-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ (room_state.unlocked_count / room_state.total_count * 100)|int if room_state.total_count else 0 }}%"></div>
+            </div>
+            <span class="progress-text">{{ room_state.unlocked_count }} / {{ room_state.total_count }}</span>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📖 童话屋说明</h2>
+            <div class="stickers-note">
+                收集更多贴纸，童话屋里的物品就会逐步解锁。<br>
+                不同系列贴纸还会提升养成属性，让房间进入新的阶段。<br>
+                点击已解锁物品，可以查看它的童话故事和数学解释。
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🌱 养成数值</h2>
+            <div class="growth-grid">
+                <div class="growth-card">
+                    <div class="growth-icon">🧠</div>
+                    <div class="growth-name">聪明值</div>
+                    <div class="growth-value">{{ room_state.growth.wisdom }}</div>
+                    <div class="growth-hint">来自计算、比较、规律系列贴纸</div>
+                </div>
+                <div class="growth-card">
+                    <div class="growth-icon">🛡️</div>
+                    <div class="growth-name">勇气值</div>
+                    <div class="growth-value">{{ room_state.growth.courage }}</div>
+                    <div class="growth-hint">来自应用题系列贴纸</div>
+                </div>
+                <div class="growth-card">
+                    <div class="growth-icon">🕰️</div>
+                    <div class="growth-name">耐心值</div>
+                    <div class="growth-value">{{ room_state.growth.patience }}</div>
+                    <div class="growth-hint">来自坚持系列贴纸</div>
+                </div>
+                <div class="growth-card">
+                    <div class="growth-icon">🏡</div>
+                    <div class="growth-name">当前房间阶段</div>
+                    <div class="growth-value">{{ room_state.room_stage.title }}</div>
+                    <div class="growth-hint">{{ room_state.room_stage.hint }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🏠 房间物品</h2>
+            <div class="fairy-room-scene">
+                {% for item in room_state.room_items %}
+                <div class="fairy-room-card {{ 'unlocked' if item.unlocked else 'locked' }} {{ 'can-unlock' if item.can_unlock else '' }}" data-item-id="{{ item.id }}">
+                    <div class="fairy-room-icon">{{ item.icon if item.unlocked else '🔒' }}</div>
+                    <div class="fairy-room-name">{{ item.name if item.unlocked else '???' }}</div>
+                    <div class="fairy-room-condition">
+                        {% if item.unlocked %}
+                            已解锁
+                        {% elif item.unlock_condition_type == 'sticker_count' %}
+                            收集 {{ item.unlock_condition_value }} 张贴纸
+                        {% else %}
+                            未解锁
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🧩 解释卡</h2>
+            <div id="itemDetail" class="fairy-detail-card empty-state">点击房间中的已解锁物品，即可查看它的故事与数学解释。</div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.fairy-room-card').forEach(card => {
+            card.addEventListener('click', async () => {
+                const itemId = card.dataset.itemId;
+                const detailBox = document.getElementById('itemDetail');
+
+                try {
+                    const response = await fetch(`/api/fairy-house/item/${itemId}`);
+                    const data = await response.json();
+
+                    if (!data.success) {
+                        detailBox.className = 'fairy-detail-card empty-state';
+                        detailBox.textContent = data.message || '暂时无法查看';
+                        return;
+                    }
+
+                    const item = data.item;
+                    if (!item.unlocked) {
+                        detailBox.className = 'fairy-detail-card empty-state';
+                        detailBox.innerHTML = `这个物品还没有解锁。<br>解锁条件：收集 ${item.unlock_condition_value} 张贴纸`;
+                        return;
+                    }
+
+                    detailBox.className = 'fairy-detail-card';
+                    detailBox.innerHTML = `
+                        <div class="fairy-detail-title">${item.icon} ${item.name}</div>
+                        <div class="fairy-detail-section">
+                            <div class="fairy-detail-label">童话解释</div>
+                            <div class="fairy-detail-text">${item.story_description}</div>
+                        </div>
+                        <div class="fairy-detail-section">
+                            <div class="fairy-detail-label">数学解释</div>
+                            <div class="fairy-detail-text">${item.math_description}</div>
+                        </div>
+                        <div class="fairy-detail-section">
+                            <div class="fairy-detail-label">解锁条件</div>
+                            <div class="fairy-detail-text">收集 ${item.unlock_condition_value} 张贴纸</div>
+                        </div>
+                    `;
+                } catch (e) {
+                    const detailBox = document.getElementById('itemDetail');
+                    detailBox.className = 'fairy-detail-card empty-state';
+                    detailBox.textContent = '网络错误，请稍后再试';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

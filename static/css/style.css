@@ -989,6 +989,176 @@ body {
     font-size: 20px;
 }
 
+/* ==================== 贴纸屋 ==================== */
+.stickers-note {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 18px;
+    background: #F8F9FF;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 2px solid #EEF0FF;
+}
+
+.sticker-action {
+    min-width: 120px;
+    text-align: right;
+}
+
+.sticker-status {
+    display: block;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #666;
+}
+
+.sticker-exchange-btn {
+    white-space: nowrap;
+}
+
+.fairy-room-scene {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.fairy-room-card {
+    background: white;
+    border-radius: 18px;
+    padding: 18px;
+    text-align: center;
+    border: 3px solid #EEF0FF;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.fairy-room-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--hover-shadow);
+}
+
+.fairy-room-card.locked {
+    opacity: 0.55;
+    background: #F8F8FC;
+}
+
+.fairy-room-card.unlocked {
+    border-color: var(--success);
+    background: linear-gradient(135deg, #F6FFF3 0%, #FFFFFF 100%);
+}
+
+.fairy-room-card.can-unlock {
+    border-color: var(--warning);
+    background: linear-gradient(135deg, #FFFBF0 0%, #FFFFFF 100%);
+}
+
+.fairy-room-icon {
+    font-size: 38px;
+    margin-bottom: 10px;
+}
+
+.fairy-room-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.fairy-room-condition {
+    font-size: 13px;
+    color: #666;
+}
+
+.fairy-detail-card {
+    background: white;
+    border-radius: 18px;
+    padding: 22px;
+    border: 3px solid #EEF0FF;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.05);
+}
+
+.fairy-detail-card.empty-state {
+    text-align: center;
+    color: #666;
+}
+
+.fairy-detail-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.fairy-detail-section {
+    margin-top: 12px;
+}
+
+.fairy-detail-label {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.fairy-detail-text {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.6;
+}
+
+.growth-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.growth-card {
+    background: white;
+    border-radius: 18px;
+    padding: 18px;
+    border: 3px solid #EEF0FF;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+.growth-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+.growth-name {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.growth-value {
+    font-size: 26px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+}
+
+.growth-hint {
+    font-size: 12px;
+    color: #888;
+}
+
+.empty-state {
+    text-align: center;
+    color: #666;
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
 /* ==================== 排行榜样式 ==================== */
 .my-rank-card {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);

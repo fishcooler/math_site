@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧷 贴纸屋 - 数苗乐园</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧷</text></svg>">
+</head>
+<body>
+    <div class="practice-container">
+        <header class="practice-header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">🧷</span>
+                    <span class="logo-text">数苗乐园</span>
+                </div>
+                <h1>🏠 贴纸屋</h1>
+                <span class="user-name">{{ user_name }} · ⭐ {{ user_points }} 积分</span>
+            </div>
+            <div class="header-right">
+                <a href="/practice" class="btn-secondary">📝 返回练习</a>
+                <a href="/fairy-house" class="btn-secondary">🏠 童话屋</a>
+                <a href="/achievements" class="btn-secondary">🏆 成就墙</a>
+                <a href="/leaderboard" class="btn-secondary">📊 排行榜</a>
+                <a href="/logout" class="btn-logout">退出</a>
+            </div>
+        </header>
+
+        <div class="achievement-stats">
+            <div class="stat-card">
+                <span class="stat-number">{{ owned_count }}</span>
+                <span class="stat-label">已收集</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ total_count }}</span>
+                <span class="stat-label">全部贴纸</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ ((owned_count / total_count) * 100)|int if total_count else 0 }}%</span>
+                <span class="stat-label">收集进度</span>
+            </div>
+        </div>
+
+        <div class="achievement-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ (owned_count / total_count * 100)|int if total_count else 0 }}%"></div>
+            </div>
+            <span class="progress-text">{{ owned_count }} / {{ total_count }}</span>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🛒 贴纸商店</h2>
+            <div class="stickers-note">完成练习可获得积分，积分可用于兑换贴纸。贴纸目前仅用于收集与展示，不影响练习难度。</div>
+            <div class="achievements-grid">
+                {% for item in catalog %}
+                <div class="achievement-card {{ 'unlocked' if item.owned else '' }}">
+                    <div class="achievement-icon">{{ item.icon }}</div>
+                    <div class="achievement-info">
+                        <h3>{{ item.name }}</h3>
+                        <p>{{ item.description }}</p>
+                        <span class="achievement-time">系列：{{ item.series }}</span>
+                    </div>
+                    <div class="sticker-action">
+                        {% if item.owned %}
+                            <span class="achievement-badge">✅</span>
+                            <span class="sticker-status">已拥有</span>
+                        {% else %}
+                            <button class="btn-secondary sticker-exchange-btn" data-sticker-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">兑换 · {{ item.price }} 积分</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🎒 我的贴纸背包</h2>
+            {% if user_stickers %}
+            <div class="achievements-grid">
+                {% for item in user_stickers %}
+                <div class="achievement-card unlocked">
+                    <div class="achievement-icon">{{ item.icon }}</div>
+                    <div class="achievement-info">
+                        <h3>{{ item.name }}</h3>
+                        <p>获得时间：{{ item.obtained_at }}</p>
+                        <span class="achievement-time">系列：{{ item.series }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">还没有收集到贴纸，先去练习赚积分吧！</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.sticker-exchange-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const stickerId = btn.dataset.stickerId;
+                const name = btn.dataset.name;
+                const price = btn.dataset.price;
+
+                if (!confirm(`确认花费 ${price} 积分兑换「${name}」吗？`)) {
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = '兑换中...';
+
+                try {
+                    const response = await fetch('/api/exchange-sticker', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({sticker_id: Number(stickerId)})
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert(data.message || '兑换失败');
+                        btn.disabled = false;
+                        btn.textContent = `兑换 · ${price} 积分`;
+                    }
+                } catch (e) {
+                    alert('网络错误，请稍后重试');
+                    btn.disabled = false;
+                    btn.textContent = `兑换 · ${price} 积分`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -22,6 +22,7 @@
             </div>
             <div class="header-right">
                 <a href="/practice" class="btn-secondary">📝 返回练习</a>
+                <a href="/stickers" class="btn-secondary">🧷 贴纸屋</a>
                 <a href="/achievements" class="btn-secondary">🏆 成就墙</a>
                 <a href="/leaderboard" class="btn-secondary">📊 排行榜</a>
                 <a href="/logout" class="btn-logout">退出</a>
@@ -105,9 +106,68 @@
                 <!-- 动态生成 -->
             </div>
         </div>
+
+        <!-- 贴纸/养成/房间解释说明 -->
+        <div class="parent-explain-section">
+            <h2 class="section-title">🧷 贴纸、养成与童话屋说明</h2>
+            <div class="parent-explain-grid">
+                <div class="parent-explain-card">
+                    <div class="parent-explain-icon">🧷</div>
+                    <div class="parent-explain-title">贴纸</div>
+                    <div class="parent-explain-text" id="explainSticker">-</div>
+                    <div class="parent-explain-hint">贴纸主要用于激励和展示，不影响练习难度。</div>
+                </div>
+                <div class="parent-explain-card">
+                    <div class="parent-explain-icon">🌱</div>
+                    <div class="parent-explain-title">养成数值</div>
+                    <div class="parent-explain-text" id="explainGrowth">-</div>
+                    <div class="parent-explain-hint">聪明值、勇气值、耐心值分别反映不同学习行为的积累。</div>
+                </div>
+                <div class="parent-explain-card">
+                    <div class="parent-explain-icon">🏠</div>
+                    <div class="parent-explain-title">房间阶段</div>
+                    <div class="parent-explain-text" id="explainRoom">-</div>
+                    <div class="parent-explain-hint">房间阶段用于把学习进步可视化，帮助孩子看到成长。</div>
+                </div>
+                <div class="parent-explain-card">
+                    <div class="parent-explain-icon">📣</div>
+                    <div class="parent-explain-title">家长可以怎么理解</div>
+                    <div class="parent-explain-text" id="explainAdvice">-</div>
+                    <div class="parent-explain-hint">如果贴纸和房间进步变慢，通常意味着需要回到练习与错题复习。</div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
+        // 加载家长解释说明
+        async function loadParentExplain() {
+            const response = await fetch('/api/parent_explain');
+            const data = await response.json();
+
+            const stickerBox = document.getElementById('explainSticker');
+            const growthBox = document.getElementById('explainGrowth');
+            const roomBox = document.getElementById('explainRoom');
+            const adviceBox = document.getElementById('explainAdvice');
+
+            if (!data || data.error) {
+                stickerBox.textContent = '暂时无法读取贴纸信息。';
+                growthBox.textContent = '暂时无法读取养成数值。';
+                roomBox.textContent = '暂时无法读取房间阶段。';
+                adviceBox.textContent = '建议先完成练习，再回来查看说明。';
+                return;
+            }
+
+            const wisdom = data.growth?.wisdom ?? 0;
+            const courage = data.growth?.courage ?? 0;
+            const patience = data.growth?.patience ?? 0;
+
+            stickerBox.innerHTML = `当前已收集 <b>${data.owned_sticker_count}</b> 张贴纸。最近收集：${(data.latest_stickers || []).map(s => s.icon).join(' ') || '暂无'}`;
+            growthBox.innerHTML = `聪明值 <b>${wisdom}</b>、勇气值 <b>${courage}</b>、耐心值 <b>${patience}</b>`;
+            roomBox.innerHTML = `当前为 <b>${data.room_stage?.title || '-'}</b>，房间进度 <b>${data.room_unlocked_count}/${data.room_total_count}</b>`;
+            adviceBox.innerHTML = `当孩子收集贴纸变慢时，通常意味着可以先回到 <b>基础练习</b> 和 <b>错题复习</b>，再继续收集。`;
+        }
+
         // 加载学习报告
         async function loadLearningReport() {
             const response = await fetch('/api/learning_report');
@@ -301,6 +361,7 @@
         
         // 页面加载时获取数据
         window.onload = function() {
+            loadParentExplain();
             loadLearningReport();
             loadLearningTrends();
             loadKnowledgeMastery();
@@ -557,6 +618,54 @@
         .suggestion-content h3 {
             color: #333;
             margin-bottom: 6px;
+        }
+
+        .parent-explain-section {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .parent-explain-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 16px;
+        }
+
+        .parent-explain-card {
+            background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+            border: 2px solid #F0F0F0;
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        .parent-explain-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .parent-explain-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .parent-explain-text {
+            font-size: 14px;
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .parent-explain-hint {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .suggestion-content h3 {
             font-size: 17px;
         }
         
