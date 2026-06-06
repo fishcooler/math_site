@@ -9,9 +9,14 @@ import os
 
 def load_config():
     """加载配置，优先级：环境变量 > .env文件 > config.json > 默认值"""
+
+    # Vercel 环境检测：Serverless 文件系统仅 /tmp 可写
+    _is_vercel = os.environ.get('VERCEL') == '1'
+    _db_default = 'sqlite:///' + os.path.join(os.sep, 'tmp', 'math_practice.db') if _is_vercel else 'sqlite:///math_practice.db'
+
     config = {
         'SECRET_KEY': 'math-practice-secret-key',
-        'DATABASE_URI': 'sqlite:///math_practice.db',
+        'DATABASE_URI': _db_default,
         'AI_API_URL': 'https://api.deepseek.com/v1/chat/completions',
         'AI_API_KEY': '',
         'AI_MODEL': 'deepseek-chat',
