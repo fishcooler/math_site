@@ -1,6 +1,6 @@
 """
 Vercel Serverless Function 入口
-将 Flask 应用适配到 Vercel 环境
+新版 Vercel Python 运行时原生支持 Flask，无需额外适配器
 """
 import os
 import sys
@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if os.environ.get('VERCEL') == '1':
     os.makedirs(os.path.join(os.sep, 'tmp'), exist_ok=True)
 
-# 导入 Flask 应用
+# 导入 Flask 应用 — Vercel 自动检测名为 app 的 Flask 实例
 from app import app, db
 
 # 在 Vercel 环境中，__main__ 块不会执行
@@ -24,9 +24,6 @@ with app.app_context():
     AchievementSystem.init_achievements()
     StickerSystem.init_stickers()
 
-# 使用 WSGI 适配器将 Flask app 桥接到 Vercel
-from vercel_wsgi import handle_wsgi_app
-
-
-def handler(request):
-    return handle_wsgi_app(app, request)
+# 导出给 Vercel 使用（新版运行时自动处理，无需 handler 函数）
+# 但保留兼容写法
+__all__ = ['app']

@@ -13,4 +13,3 @@ watchdog==4.0.2
 greenlet==3.1.1
 typing-extensions==4.13.2
 requests==2.31.0
-vercel-wsgi>=0.5.0
